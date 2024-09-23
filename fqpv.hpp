@@ -13,18 +13,13 @@ namespace fqpv
     {
         static constexpr int PipeSize = 1024 * 1024;
 
-        fd stdin;
-        fd stdout;
+        const fd stdin = fd::stdin();
+        const fd stdout = fd::stdout();
         buffered_transfer_engine buffered {PipeSize};
         splice_transfer_engine splice {PipeSize};
         speedometer speed;
 
     public:
-        fqpv() {
-            stdin = fd::stdin();
-            stdout = fd::stdout();
-        }
-
         int main(std::span<const char*> args) {
             try {
                 trap_sigpipe();
