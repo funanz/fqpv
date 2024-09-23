@@ -15,8 +15,8 @@ namespace fqpv
 
         fd stdin;
         fd stdout;
-        buffered_transfer_engine buffered;
-        splice_transfer_engine splice;
+        buffered_transfer_engine buffered {PipeSize};
+        splice_transfer_engine splice {PipeSize};
         speedometer speed;
 
     public:
