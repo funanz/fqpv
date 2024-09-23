@@ -52,26 +52,26 @@ namespace fqpv
         explicit splice_error(int arg_errno) : io_error(arg_errno) {}
     };
 
-    class fd {
+    class ownership_fd {
         int fd_;
         bool owned_;
 
-        fd(const fd&) = delete;
-        fd& operator=(const fd&) = delete;
+        ownership_fd(const ownership_fd&) = delete;
+        ownership_fd& operator=(const ownership_fd&) = delete;
 
     public:
-        fd() noexcept : fd_(-1), owned_(false) {}
-        fd(int fd, bool owned) noexcept : fd_(fd), owned_(owned) {}
+        ownership_fd() noexcept : fd_(-1), owned_(false) {}
+        ownership_fd(int fd, bool owned) noexcept : fd_(fd), owned_(owned) {}
 
-        ~fd() {
+        ~ownership_fd() {
             close();
         }
 
-        fd(fd&& r) noexcept : fd_(-1), owned_(false) {
+        ownership_fd(ownership_fd&& r) noexcept : fd_(-1), owned_(false) {
             swap(*this, r);
         }
 
-        fd& operator=(fd&& r) {
+        ownership_fd& operator=(ownership_fd&& r) {
             if (this != &r) {
                 close();
                 swap(*this, r);
@@ -79,7 +79,7 @@ namespace fqpv
             return *this;
         }
 
-        friend void swap(fd& a, fd& b) noexcept {
+        friend void swap(ownership_fd& a, ownership_fd& b) noexcept {
             std::swap(a.fd_, b.fd_);
             std::swap(a.owned_, b.owned_);
         }
@@ -91,7 +91,7 @@ namespace fqpv
 
         void close() {
             if (owned_ && fd_ != -1)
-                fd::close(fd_);
+                ownership_fd::close(fd_);
 
             fd_ = -1;
             owned_ = false;
@@ -206,14 +206,14 @@ namespace fqpv
         }
 
         [[nodiscard]]
-        bool can_splice(const fd& out) const {
+        bool can_splice(const ownership_fd& out) const {
             auto sm_in = get_stat_mode();
             auto sm_out = out.get_stat_mode();
 
             return (sm_in == S_IFIFO) || (sm_out == S_IFIFO);
         }
 
-        ssize_t splice(off_t* off_in, const fd& out, off_t* off_out, size_t len, unsigned int flags) const {
+        ssize_t splice(off_t* off_in, const ownership_fd& out, off_t* off_out, size_t len, unsigned int flags) const {
             for (;;) {
                 auto ret = ::splice(fd_, off_in, out.fd_, off_out, len, flags);
                 if (ret == -1) {
@@ -245,23 +245,23 @@ namespace fqpv
         }
 
         [[nodiscard]]
-        static fd stdin() {
+        static ownership_fd stdin() {
             return {STDIN_FILENO, false};
         }
 
         [[nodiscard]]
-        static fd stdout() {
+        static ownership_fd stdout() {
             return {STDOUT_FILENO, false};
         }
 
         [[nodiscard]]
-        static fd stderr() {
+        static ownership_fd stderr() {
             return {STDERR_FILENO, false};
         }
 
         template <typename... Args>
         [[nodiscard]]
-        static fd open(const std::string& file, int flags, Args&&... args) {
+        static ownership_fd open(const std::string& file, int flags, Args&&... args) {
             for (;;) {
                 auto fd = ::open(file.c_str(), flags, std::forward<Args>(args)...);
                 if (fd == -1) {
@@ -275,15 +275,15 @@ namespace fqpv
         }
 
         [[nodiscard]]
-        static std::tuple<fd, fd> pipe2(int flags) {
+        static std::tuple<ownership_fd, ownership_fd> pipe2(int flags) {
             int fds[2];
             auto ret = ::pipe2(fds, flags);
             if (ret == -1)
                 throw io_error(errno);
 
             return {
-                fd{fds[0], true},
-                fd{fds[1], true},
+                ownership_fd{fds[0], true},
+                ownership_fd{fds[1], true},
             };
         }
 
@@ -311,4 +311,6 @@ namespace fqpv
             return {data, size};
         }
     };
+
+    using fd = ownership_fd;
 }
