@@ -166,8 +166,8 @@ namespace fqpv
         requires (sizeof(T) > 1)
         [[nodiscard]]
         std::span<T> read(std::span<T, E> span) const {
-            auto bytes = to_byte_span(span);
-            auto buf = bytes;
+            auto bytes = std::as_writable_bytes(span);
+            std::span<std::byte> buf = bytes;
             for (;;) {
                 auto buf_read = read(buf);
                 buf = buf.subspan(buf_read.size());
@@ -185,8 +185,9 @@ namespace fqpv
         template <class T, size_t E>
         requires (sizeof(T) == 1)
         void write(std::span<T, E> bytes) const {
-            while (!bytes.empty()) {
-                auto ret = ::write(fd_, bytes.data(), bytes.size());
+            std::span<T> buf = bytes;
+            while (!buf.empty()) {
+                auto ret = ::write(fd_, buf.data(), buf.size());
                 if (ret == -1) {
                     if (errno == EAGAIN || errno == EINTR)
                         continue;
@@ -195,14 +196,14 @@ namespace fqpv
                     else
                         throw io_error(errno);
                 }
-                bytes = bytes.subspan(ret);
+                buf = buf.subspan(ret);
             }
         }
 
         template <class T, size_t E>
         requires (sizeof(T) > 1)
         void write(std::span<T, E> span) const {
-            write(to_byte_span(span));
+            write(std::as_bytes(span));
         }
 
         [[nodiscard]]
@@ -300,15 +301,6 @@ namespace fqpv
                 throw io_error(errno);
 
             return sb.st_mode & S_IFMT;
-        }
-
-        template <class T, size_t E>
-        [[nodiscard]]
-        static std::span<std::byte> to_byte_span(std::span<T, E> span) {
-            auto data = reinterpret_cast<std::byte*>(span.data());
-            auto size = span.size() * sizeof(T);
-
-            return {data, size};
         }
     };
 
