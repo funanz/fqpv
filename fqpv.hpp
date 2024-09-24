@@ -32,7 +32,7 @@ namespace fqpv
                 return 0;
             }
             catch (runtime_error& e) {
-                print_error(e);
+                e.print();
                 return 1;
             }
             return 0;
@@ -79,12 +79,8 @@ namespace fqpv
                 transfer(in, out);
             }
             catch (file_error& e) {
-                print_error(e);
+                e.print();
             }
-        }
-
-        static void print_error(runtime_error& e) {
-            fprintf(stderr, "fqpv: %s\n", e.what());
         }
     };
 }

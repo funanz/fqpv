@@ -18,6 +18,8 @@ namespace fqpv
     public:
         explicit runtime_error(const std::string& s) : std::runtime_error(s) {}
         explicit runtime_error(const char* s) : std::runtime_error(s) {}
+
+        void print() { fprintf(::stderr, "fqpv: %s\n", what()); }
     };
 
     class io_error : public runtime_error {
@@ -64,7 +66,12 @@ namespace fqpv
         ownership_fd(int fd, bool owned) noexcept : fd_(fd), owned_(owned) {}
 
         ~ownership_fd() {
-            close();
+            try {
+                close();
+            }
+            catch (runtime_error& e) {
+                e.print();
+            }
         }
 
         ownership_fd(ownership_fd&& r) noexcept : fd_(-1), owned_(false) {
