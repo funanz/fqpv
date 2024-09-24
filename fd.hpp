@@ -208,10 +208,7 @@ namespace fqpv
 
         [[nodiscard]]
         bool can_splice(const ownership_fd& out) const {
-            auto sm_in = get_stat_mode();
-            auto sm_out = out.get_stat_mode();
-
-            return (sm_in == S_IFIFO) || (sm_out == S_IFIFO);
+            return is_pipe() || out.is_pipe();
         }
 
         ssize_t splice(off_t* off_in, const ownership_fd& out, off_t* off_out, size_t len, unsigned int flags) const {
